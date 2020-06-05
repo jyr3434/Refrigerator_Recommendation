@@ -13,7 +13,7 @@ class Crawl:
     def __init__(self):
         # 대분류별(cat1~4) 중분류 정보를 담고 있는 변수 key : id_text / value : id
         self.cat1,self.cat2,self.cat3,self.cat4 = {},{},{},{}
-        self.rec_dict = {}
+        
 
     def GetCRL(self): # 대분류별 중분류 정보 수집
         req = urllib.request.Request(self.main_url)
@@ -110,7 +110,7 @@ class Crawl:
         return recipe_list # 1페이지당 레시피의 결과물
 
     def PageCrawler(self,recipe_id):
-
+        rec_dict = {}
         Curl = 'https://www.10000recipe.com/recipe/'+ str(recipe_id)
 
         csourcecode = urllib.request.urlopen(Curl).read()
@@ -119,21 +119,21 @@ class Crawl:
         rec_title = []  # 레시피 제목
         rec_source = {}  # 레시피 재료
         rec_step = []  # 레시피 순서
-        self.rec_dict['recipe_id'] = recipe_id
+        rec_dict['recipe_id'] = recipe_id
         try:
             res = soup.find('div', 'view2_summary')
             res = soup.find('h3')
-            self.rec_dict['rec_title']=res.get_text()
+            rec_dict['rec_title']=res.get_text()
 
         except(AttributeError):
-            self.rec_dict['rec_title']='-'
+            rec_dict['rec_title']='-'
 
         try:
             res = soup.find('div', 'view2_summary_info')
-            self.rec_dict['rec_sub']= res.get_text().replace('\n', '')
+            rec_dict['rec_sub']= res.get_text().replace('\n', '')
             res = soup.find('div', 'ready_ingre3')
         except(AttributeError):
-            self.rec_dict['rec_sub']='-'
+            rec_dict['rec_sub']='-'
 
         rg = re.compile('[\s]{2,}')
         try:
@@ -147,9 +147,9 @@ class Crawl:
                     text = rg.sub(' ',text)
                     source_element_list.append(text)
                 source_category.append('|'.join(source_element_list))
-            self.rec_dict['rec_source']='&'.join(source_category)
+            rec_dict['rec_source']='&'.join(source_category)
         except (AttributeError):
-            self.rec_dict['rec_source']='-'
+            rec_dict['rec_source']='-'
 
             #  요리 순서 찾는 for 문
         res = soup.find('div', 'view_step')
@@ -160,22 +160,25 @@ class Crawl:
                 rec_step.append(n.get_text().replace('\n', ' '))
                 #  나중 순서를 구별 하기 위해 #을 넣는다
             if rec_step:
-                self.rec_dict['rec_step']='|'.join(rec_step)
+                rec_dict['rec_step']='|'.join(rec_step)
             else:
-                self.rec_dict['rec_step']='-'
+                rec_dict['rec_step']='-'
+
+            tag = res.find('div', 'view_tag')
+            if tag:
+                rec_dict['rec_tag'] = tag.get_text()
+                # del recipe_tag[0]
+            else:
+                rec_dict['rec_tag'] = '-'
         else:
-            self.rec_dict['rec_step'] = '-'
+            rec_dict['rec_step'] = '-'
+            rec_dict['rec_tag'] = '-'
         # 해시 태그가 글 내에 있는 판단하고 출력 해주는  for문
 
-        tag = res.find('div', 'view_tag')
-        if tag:
-            self.rec_dict['rec_tag']=tag.get_text()
-            # del recipe_tag[0]
-        else:
-            self.rec_dict['rec_tag']='-'
-        print(self.rec_dict)
 
-        return self.rec_dict
+        print(rec_dict)
+
+        return rec_dict
 
 if __name__=='__main__':
     crawl = Crawl()
@@ -187,7 +190,7 @@ if __name__=='__main__':
     df = pd.read_csv('pre-processing/crawl_data/id_4category.csv',index_col=0)
     print(df.iloc[:5,0])
     pool = Pool(processes=8) # 4개의 프로세스를 사용합니다
-    result = pool.map(crawl.PageCrawler, iter(df.iloc[:30000,0]))
+    result = pool.map(crawl.PageCrawler, iter(df.iloc[:100,0]))
     df = pd.DataFrame(result)
     df.to_csv('pre-processing/crawl_data/recipe_element.csv')
     # result_list = pool.map(crawl.Crawl_recipe_id,iter(crawl.cat1.keys()))
