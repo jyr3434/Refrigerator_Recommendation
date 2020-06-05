@@ -136,8 +136,8 @@ if __name__=='__main__':
     # df = pd.DataFrame(end)
     # df.to_csv('crawl_data/cat4.csv', encoding='UTF-8', header=True)
 
-    df1 = pd.read_csv('crawl_data/crawl_recipe_id.csv',index_col=0)
-    df2 = pd.read_csv('crawl_data/cat4.csv',index_col=0)
-    df3 = pd.merge(df1,df2,on='id')
-    df3.to_csv('crawl_data/id_4category.csv',encoding='UTF-8',header=True)
-    print("--- %s seconds ---" % (time.time() - start_time))
+    # df1 = pd.read_csv('crawl_data/crawl_recipe_id.csv',index_col=0)
+    # df2 = pd.read_csv('crawl_data/cat4.csv',index_col=0)
+    # df3 = pd.merge(df1,df2,on='id')
+    # df3.to_csv('crawl_data/id_4category.csv',encoding='UTF-8',header=True)
+    # print("--- %s seconds ---" % (time.time() - start_time))
