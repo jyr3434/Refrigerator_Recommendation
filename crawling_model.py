@@ -154,15 +154,17 @@ class Crawl:
             #  요리 순서 찾는 for 문
         res = soup.find('div', 'view_step')
         i = 0
-        for n in res.find_all('div', 'view_step_cont'):
-            i = i + 1
-            rec_step.append(n.get_text().replace('\n', ' '))
-            #  나중 순서를 구별 하기 위해 #을 넣는다
-        if rec_step:
-            self.rec_dict['rec_step']='|'.join(rec_step)
+        if (res):
+            for n in res.find_all('div', 'view_step_cont'):
+                i = i + 1
+                rec_step.append(n.get_text().replace('\n', ' '))
+                #  나중 순서를 구별 하기 위해 #을 넣는다
+            if rec_step:
+                self.rec_dict['rec_step']='|'.join(rec_step)
+            else:
+                self.rec_dict['rec_step']='-'
         else:
-            self.rec_dict['rec_step']='-'
-
+            self.rec_dict['rec_step'] = '-'
         # 해시 태그가 글 내에 있는 판단하고 출력 해주는  for문
 
         tag = res.find('div', 'view_tag')
@@ -184,8 +186,8 @@ if __name__=='__main__':
 
     df = pd.read_csv('pre-processing/crawl_data/id_4category.csv',index_col=0)
     print(df.iloc[:5,0])
-    pool = Pool(processes=16) # 4개의 프로세스를 사용합니다
-    result = pool.map(crawl.PageCrawler, iter(df.iloc[:,0]))
+    pool = Pool(processes=8) # 4개의 프로세스를 사용합니다
+    result = pool.map(crawl.PageCrawler, iter(df.iloc[:30000,0]))
     df = pd.DataFrame(result)
     df.to_csv('pre-processing/crawl_data/recipe_element.csv')
     # result_list = pool.map(crawl.Crawl_recipe_id,iter(crawl.cat1.keys()))

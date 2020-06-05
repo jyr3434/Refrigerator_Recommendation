@@ -19,12 +19,12 @@ mainurl = 'https://www.10000recipe.com/recipe/list.html?order=reco&page=1'
 def PageCrawler(urllist):
     Curl = urllist
     creq = urllib.request.Request(Curl)
-    csourcecode = urllib.request.urlopen(Curl).read()
+    csourcecode = urllib.request.urlopen(creq).read()
     soup = BeautifulSoup(csourcecode, "html.parser")
 
 
     rec_title = []  # 레시피 제목
-    rec_source = {}  # 레시피 재료
+    rec_source = []  # 레시피 재료
     rec_step = []  # 레시피 순서
     rec_tag = []  # 레시피 해시태그
     try :
@@ -37,17 +37,19 @@ def PageCrawler(urllist):
         res = soup.find('div', 'ready_ingre3')
     except(AttributeError):
         pass
+
     pattern = re.compile('[\s]{2,}')
     try:
         for n in res.find_all('ul'):
             source = []
             title = n.find('b').get_text()
-            rec_source[title] = ''
+            #rec_source[title] = ''
             for tmp in n.find_all('li'):
-                t =tmp.get_text().replace('\n', '')
+                t = tmp.get_text().replace('\n', '')
                 t = pattern.sub(' ',t)
-                source.append(t)
-            rec_source[title] = source
+                #source.append(t)
+            #rec_source[title] = source
+                source = title + t
     except (AttributeError):
         return
 
@@ -58,7 +60,6 @@ def PageCrawler(urllist):
     for n in res.find_all('div', 'view_step_cont'):
         i = i + 1
         rec_step_imsi.append(n.get_text().replace('\n', ' '))
-        #  나중 순서를 구별 하기 위해 #을 넣는다
     rec_step.append('|'.join(rec_step_imsi))
 
     # 해시 태그가 글 내에 있는 판단하고 출력 해주는  for문
@@ -70,7 +71,7 @@ def PageCrawler(urllist):
     if not rec_step:
         return
 
-    recipe_all = [rec_title, rec_source, rec_step, rec_tag]
+    recipe_all = [rec_title, source, rec_step, rec_tag]
     return (recipe_all)
 
 def Getrcp(page_idx):
