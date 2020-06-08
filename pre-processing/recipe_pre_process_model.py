@@ -32,7 +32,7 @@ class RecipePreProcess:
     rec_source    돼지고기 앞다리살 760g|양파 1/2개|쪽파 1줌|다진마늘 1T|고추장 3T|설탕...
     rec_step      재료와 양념은 사진상으로 참고하시면 좋을 것 같아서 올려봅니다 ^^|돼지고기 앞다리...
     '''
-    def df_to_oracle(self,df):
+    def df_to_oracle(self,df): # insert data to oracle table
         conn = None
         cur = None
         try:
@@ -47,14 +47,15 @@ class RecipePreProcess:
                           f" values('{row.id}','{row.cat1}','{row.cat2}','{row.cat3}'," \
                           f" '{row.cat4}')"
                     cur.execute(sql)
-                    sql = self.execute_to_clob('rec_title',row.id,row.rec_title)
+                    sql = " update recipe_infos set "
+                    sql += self.execute_to_clob('rec_title',row.rec_title)+" , "
+                    sql += self.execute_to_clob('rec_sub',row.rec_title)+" , "
+                    sql += self.execute_to_clob('rec_source',row.rec_title)+" , "
+                    sql += self.execute_to_clob('rec_step',row.rec_title)
+                    sql += f" where id = '{row.id}'"
                     cur.execute(sql)
-                    sql = self.execute_to_clob('rec_sub',row.id, row.rec_title)
-                    cur.execute(sql)
-                    sql = self.execute_to_clob('rec_source',row.id, row.rec_title)
-                    cur.execute(sql)
-                    sql = self.execute_to_clob('rec_step',row.id, row.rec_title)
-                    cur.execute(sql)
+                    print(idx)
+                conn.commit()
             else:
                 print('argument type not dataframe')
         except Exception as err:
@@ -65,8 +66,8 @@ class RecipePreProcess:
             if conn is not None:
                 conn.close()
 
-    def execute_to_clob(self,col,where,text):
-        sql = f" update recipe_infos set {col} = "
+    def execute_to_clob(self,col,text):
+        sql = f" {col} = "
         lens = len(text)
         text = text.replace("'",'"')
         to_clob_list = []
@@ -76,7 +77,7 @@ class RecipePreProcess:
             else:
                 to_clob_list.append(f" to_clob(' {text[x:1000+x]} ')")
         sql = sql + " || ".join(to_clob_list)
-        sql += f" where id = '{where}'"
+
         # print(sql)
         return sql
 
@@ -84,7 +85,8 @@ if __name__ == '__main__':
     recipepp = RecipePreProcess()
     #############
     # df_to_oracle
-    df = pd.read_csv('crawl_data/recipe_data_dropna.csv',index_col=0)
+    df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
+    print(df.shape)
     recipepp.df_to_oracle(df)
     ###################
 
@@ -122,14 +124,20 @@ if __name__ == '__main__':
     # # 결측치 제거
 
     # df_dropna = df.drop(columns=['recipe_id','rec_tag'])
+    #################################################################
+    # df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
+    # for x in df.columns:
+    #     df.loc[df[x] == '-'] = np.nan
+    # df = df.dropna(axis=0) #(125964, 10)
     #
-    # for x in df_dropna.columns:
-    #     df_dropna.loc[df[x] == '-'] = np.nan
-    #
-    # df_dropna = df_dropna.dropna(axis=0) #(125964, 10)
     # for x in range(0,9):
-    #     print(sum(df_dropna.iloc[:,x] == '-'))
-    #
-    #
-    # print(df_dropna.shape)
-    # df_dropna.to_csv('crawl_data/recipe_data_dropna.csv',encoding='utf-8')
+    #     print(sum(df.iloc[:,x] == '-'))
+    # #
+    # #
+    # # print(df_dropna.shape)
+    # df.to_csv('../../data/crawl_data/recipe_data_dropna.csv',encoding='utf-8',index=False)
+    '''
+    D:\Phycharm_pss\global_interpreter\venv\lib\site-packages\pandas\core\ops\array_ops.py:253:
+    FutureWarning: elementwise comparison failed; returning scalar instead, but in the future will perform elementwise comparison
+    res_values = method(rvalues)
+    '''
