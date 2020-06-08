@@ -1,5 +1,7 @@
+import numpy as np
 import pandas as pd
 import cx_Oracle
+
 
 class RecipePreProcess:
     def __init__(self):
@@ -19,15 +21,73 @@ class RecipePreProcess:
             print('argument type not dataframe')
 
     # 해당 데이터프레임을 oracle table에 insert한다.
+    '''
+        (1383, id                                                      6930519
+    cat1                                                         볶음
+    cat2                                                         일상
+    cat3                                                       돼지고기
+    cat4                                                       메인반찬
+    rec_title                                               [돼지불고기]
+    rec_sub                                         3인분 30분 이내 아무나 
+    rec_source    돼지고기 앞다리살 760g|양파 1/2개|쪽파 1줌|다진마늘 1T|고추장 3T|설탕...
+    rec_step      재료와 양념은 사진상으로 참고하시면 좋을 것 같아서 올려봅니다 ^^|돼지고기 앞다리...
+    '''
     def df_to_oracle(self,df):
-        if isinstance(df,pd.DataFrame):
-            pass
-        else:
-            print('argument type not dataframe')
+        conn = None
+        cur = None
+        try:
+            loginfo = 'recommend/oracle@localhost:1521/xe'
+            conn = cx_Oracle.connect(loginfo, encoding = 'utf-8')
+            cur = conn.cursor()
+            if isinstance(df,pd.DataFrame):
+                print(max([ len(i) for i in df['rec_step']]))
+                for idx,row in df.iterrows():
+                    sql = f" insert into recipe_infos " \
+                          f"(id, cat1, cat2, cat3, cat4) " \
+                          f" values('{row.id}','{row.cat1}','{row.cat2}','{row.cat3}'," \
+                          f" '{row.cat4}')"
+                    cur.execute(sql)
+                    sql = self.execute_to_clob('rec_title',row.id,row.rec_title)
+                    cur.execute(sql)
+                    sql = self.execute_to_clob('rec_sub',row.id, row.rec_title)
+                    cur.execute(sql)
+                    sql = self.execute_to_clob('rec_source',row.id, row.rec_title)
+                    cur.execute(sql)
+                    sql = self.execute_to_clob('rec_step',row.id, row.rec_title)
+                    cur.execute(sql)
+            else:
+                print('argument type not dataframe')
+        except Exception as err:
+            print(err)
+        finally:
+            if cur is not None:
+                cur.close()
+            if conn is not None:
+                conn.close()
 
+    def execute_to_clob(self,col,where,text):
+        sql = f" update recipe_infos set {col} = "
+        lens = len(text)
+        text = text.replace("'",'"')
+        to_clob_list = []
+        for x in range(0,lens,1000):
+            if lens - x > 1000:
+                to_clob_list.append(f" to_clob(' {text[x:]} ')")
+            else:
+                to_clob_list.append(f" to_clob(' {text[x:1000+x]} ')")
+        sql = sql + " || ".join(to_clob_list)
+        sql += f" where id = '{where}'"
+        # print(sql)
+        return sql
 
 if __name__ == '__main__':
     recipepp = RecipePreProcess()
+    #############
+    # df_to_oracle
+    df = pd.read_csv('crawl_data/recipe_data_dropna.csv',index_col=0)
+    recipepp.df_to_oracle(df)
+    ###################
+
     # df1 = pd.read_csv('crawl_data/recipe_info_0_60000.csv',index_col=0)
     # df2 = pd.read_csv('crawl_data/recipe_info_60000_135345.csv',index_col=0)
     #
@@ -40,14 +100,14 @@ if __name__ == '__main__':
     # print(df4.shape,len(df4))
     # recipepp.save_data('recipe_data_final',df4)
 
-    df = pd.read_csv('crawl_data/recipe_data_final_0_135326.csv',index_col=0)
+    # df = pd.read_csv('crawl_data/recipe_data_final_0_135326.csv',index_col=0)
     # print(df.columns)
     '''
     Index(['id', 'cat1', 'cat2', 'cat3', 'cat4', 'recipe_id', 'rec_title',
        'rec_sub', 'rec_source', 'rec_step', 'rec_tag'],
       dtype='object')
     '''
-    # for x in range(6,11):
+    # for x in range(0,11):
     #     print(sum(df.iloc[:,x] == '-'))
     '''
     315
@@ -57,11 +117,19 @@ if __name__ == '__main__':
     135318
     8
     '''
-    print(sum(df['rec_tag'] != '-'))
-    print(df.loc[df['rec_tag'] != '-','rec_tag'])
-    # 결측치 제거
-    df2 = df.iloc[:,:10]
+    # print(sum(df['rec_tag'] != '-'))
+    # print(df.loc[df['rec_tag'] != '-','rec_tag'])
+    # # 결측치 제거
 
-    df_dropna = df2.dropna(axis=0) #(125964, 10)
-    df_dropna = df_dropna.drop(columns=['recipe_id'])
-    df_dropna.to_csv('crawl_data/recipe_data_dropna.csv',encoding='utf-8',index=False)
+    # df_dropna = df.drop(columns=['recipe_id','rec_tag'])
+    #
+    # for x in df_dropna.columns:
+    #     df_dropna.loc[df[x] == '-'] = np.nan
+    #
+    # df_dropna = df_dropna.dropna(axis=0) #(125964, 10)
+    # for x in range(0,9):
+    #     print(sum(df_dropna.iloc[:,x] == '-'))
+    #
+    #
+    # print(df_dropna.shape)
+    # df_dropna.to_csv('crawl_data/recipe_data_dropna.csv',encoding='utf-8')
