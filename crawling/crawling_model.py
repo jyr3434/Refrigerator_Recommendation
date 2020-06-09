@@ -123,7 +123,7 @@ class Crawl:
         rec_title = []  # 레시피 제목
         rec_source = {}  # 레시피 재료
         rec_step = []  # 레시피 순서
-        rec_dict['recipe_id'] = str(recipe_id)
+        rec_dict['id'] = str(recipe_id)
         try:
             res = soup.find('div', 'view2_summary')
             res = soup.find('h3')
@@ -193,7 +193,7 @@ if __name__=='__main__':
 
     df = pd.read_csv('../pre-processing/crawl_data/id_4category.csv',index_col=0)
     print(df.iloc[:5,0])
-    pool = Pool(processes=8) # 4개의 프로세스를 사용합니다
+    pool = Pool(processes=16) # 4개의 프로세스를 사용합니다
     result = pool.map(crawl.PageCrawler, iter(df.iloc[70000:,0]))
     df = pd.DataFrame(result)
     '''

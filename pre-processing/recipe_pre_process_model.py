@@ -1,16 +1,16 @@
 import numpy as np
 import pandas as pd
 import cx_Oracle
+from multiprocessing import Pool
 
 
 class RecipePreProcess:
     def __init__(self):
         pass
-
     def concat_data(self,x,y):
         return pd.concat([x,y],axis=0,ignore_index=True)
-    def merge_data(self,x,y):
-        return pd.merge(x,y,how='inner',left_on='id',right_on='recipe_id')
+    def merge_data(self,x,y,on):
+        return pd.merge(x,y,how='inner',left_on=on,right_on=on)
 
     # 파일명과 데이터 프레임을 넣어 준다.
     def save_data(self,filename,df):
@@ -19,6 +19,17 @@ class RecipePreProcess:
             df.to_csv('crawl_data/{}_0_{}.csv'.format(filename,len(df)),encoding='utf-8')
         else:
             print('argument type not dataframe')
+
+    def str_drop_na(self,df):
+        print('drop before',df.shape)
+        for x in df.columns:
+            df.loc[df[x] == '-'] = np.nan
+        df = df.dropna(axis=0) #(125964, 10)
+
+        for x in range(0,9):
+            print(sum(df.iloc[:,x] == '-'))
+        print('drop after',df.shape)
+        return 0
 
     # 해당 데이터프레임을 oracle table에 insert한다.
     '''
@@ -49,9 +60,9 @@ class RecipePreProcess:
                     cur.execute(sql)
                     sql = " update recipe_infos set "
                     sql += self.execute_to_clob('rec_title',row.rec_title)+" , "
-                    sql += self.execute_to_clob('rec_sub',row.rec_title)+" , "
-                    sql += self.execute_to_clob('rec_source',row.rec_title)+" , "
-                    sql += self.execute_to_clob('rec_step',row.rec_title)
+                    sql += self.execute_to_clob('rec_sub',row.rec_sub)+" , "
+                    sql += self.execute_to_clob('rec_source',row.rec_source)+" , "
+                    sql += self.execute_to_clob('rec_step',row.rec_step)
                     sql += f" where id = '{row.id}'"
                     cur.execute(sql)
                     print(idx)
@@ -72,7 +83,7 @@ class RecipePreProcess:
         text = text.replace("'",'"')
         to_clob_list = []
         for x in range(0,lens,1000):
-            if lens - x > 1000:
+            if lens - x < 1000:
                 to_clob_list.append(f" to_clob(' {text[x:]} ')")
             else:
                 to_clob_list.append(f" to_clob(' {text[x:1000+x]} ')")
@@ -81,14 +92,24 @@ class RecipePreProcess:
         # print(sql)
         return sql
 
+
 if __name__ == '__main__':
     recipepp = RecipePreProcess()
     #############
     # df_to_oracle
-    df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv',index_col=0)
+    df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
     print(df.shape)
     recipepp.df_to_oracle(df)
     ###################
+
+    ################# multi process ######################
+    # loginfo = 'recommend/oracle@localhost:1521/xe'
+    # pool = cx_Oracle.SessionPool(loginfo,min=2,max=5,increment = 1,threaded=True,encoding='utf-8')
+    # conn = pool.acquire()
+    #
+    # recipepp.conn.commit()
+    # recipepp.conn.close()
+    ##########################################
 
     # df1 = pd.read_csv('crawl_data/recipe_info_0_60000.csv',index_col=0)
     # df2 = pd.read_csv('crawl_data/recipe_info_60000_135345.csv',index_col=0)
@@ -125,16 +146,7 @@ if __name__ == '__main__':
 
     # df_dropna = df.drop(columns=['recipe_id','rec_tag'])
     #################################################################
-    # df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
-    # for x in df.columns:
-    #     df.loc[df[x] == '-'] = np.nan
-    # df = df.dropna(axis=0) #(125964, 10)
-    #
-    # for x in range(0,9):
-    #     print(sum(df.iloc[:,x] == '-'))
-    # #
-    # #
-    # # print(df_dropna.shape)
+
     # df.to_csv('../../data/crawl_data/recipe_data_dropna.csv',encoding='utf-8',index=False)
     '''
     D:\Phycharm_pss\global_interpreter\venv\lib\site-packages\pandas\core\ops\array_ops.py:253:
