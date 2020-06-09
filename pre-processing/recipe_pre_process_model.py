@@ -85,7 +85,7 @@ if __name__ == '__main__':
     recipepp = RecipePreProcess()
     #############
     # df_to_oracle
-    df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
+    df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv',index_col=0)
     print(df.shape)
     recipepp.df_to_oracle(df)
     ###################
