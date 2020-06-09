@@ -26,3 +26,9 @@ create table recipe_infos (
     rec_step clob default empty_clob()
 );
 commit;
+
+#########################################
+create table recipe_table
+as
+select * from recipe_infos where regexp_like(id,'[0-9]+');
+commit;

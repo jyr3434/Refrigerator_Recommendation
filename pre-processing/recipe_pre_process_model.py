@@ -31,9 +31,38 @@ class RecipePreProcess:
         print('drop after',df.shape)
         return 0
 
+    def match_db_df(self,df):
+        conn,cur = None,None
+        try:
+            loginfo = 'recommend/oracle@localhost:1521/xe'
+            conn = cx_Oracle.connect(loginfo, encoding='utf-8')
+            cur = conn.cursor()
+
+            db_set = set()
+            sql = " select id from recipe_infos "
+            lists = []
+            for i in cur.execute(sql):
+                try:
+                    if i[0]:
+                        db_set.add(int(i[0]))
+                except:
+                    lists.append(i[0])
+            print(lists)
+            df_set = set(df['id'])
+
+            intersection_id = df_set - db_set
+            return  df.loc[intersection_id,:]
+        except Exception as err:
+            print(err)
+        finally:
+            if cur:
+                cur.close()
+            if conn:
+                conn.close()
+
     # 해당 데이터프레임을 oracle table에 insert한다.
     '''
-        (1383, id                                                      6930519
+    (1383, id                                                      6930519
     cat1                                                         볶음
     cat2                                                         일상
     cat3                                                       돼지고기
@@ -66,6 +95,7 @@ class RecipePreProcess:
                     sql += f" where id = '{row.id}'"
                     cur.execute(sql)
                     print(idx)
+                    pd.re
                 conn.commit()
             else:
                 print('argument type not dataframe')
@@ -99,8 +129,12 @@ if __name__ == '__main__':
     # df_to_oracle
     df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
     print(df.shape)
-    recipepp.df_to_oracle(df)
+    s = [int(str(i)) for i in df['id']]
+
+    # print(recipepp.match_db_df(df).shape)
+    # recipepp.df_to_oracle(df)
     ###################
+
 
     ################# multi process ######################
     # loginfo = 'recommend/oracle@localhost:1521/xe'
