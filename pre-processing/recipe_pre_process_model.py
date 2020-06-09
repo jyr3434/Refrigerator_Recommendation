@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import cx_Oracle
+import re
 from multiprocessing import Pool
 
 
@@ -33,6 +34,7 @@ class RecipePreProcess:
 
     def match_db_df(self,df):
         conn,cur = None,None
+        rg = re.compile('^[0-9]+$')
         try:
             loginfo = 'recommend/oracle@localhost:1521/xe'
             conn = cx_Oracle.connect(loginfo, encoding='utf-8')
@@ -42,11 +44,10 @@ class RecipePreProcess:
             sql = " select id from recipe_infos "
             lists = []
             for i in cur.execute(sql):
-                try:
-                    if i[0]:
-                        db_set.add(int(i[0]))
-                except:
-                    lists.append(i[0])
+
+                if i[0] and rg.match(i[0]):
+                    db_set.add(int(i[0]))
+
             print(lists)
             df_set = set(df['id'])
 
@@ -129,9 +130,7 @@ if __name__ == '__main__':
     # df_to_oracle
     df = pd.read_csv('../../data/crawl_data/recipe_data_dropna.csv')
     print(df.shape)
-    s = [int(str(i)) for i in df['id']]
-
-    # print(recipepp.match_db_df(df).shape)
+    print(recipepp.match_db_df(df).shape)
     # recipepp.df_to_oracle(df)
     ###################
 
